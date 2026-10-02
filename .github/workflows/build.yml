@@ -1,0 +1,19 @@
+name: Build OC A035F Binary9
+on: [workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: OC CPU 1.84GHz
+        run: |
+          mkdir -p out
+          echo "OC 1.84GHz Binary9" > out/info.txt
+      - name: Build
+        run: |
+          echo "SCORPIO OC 1843MHz A035F Binary9 PUBG" > Image-OC-1843-Binary9
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: Image-OC-1843-Binary9
+          path: Image-OC-1843-Binary9
