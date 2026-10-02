@@ -6,18 +6,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup Tools
-        run: |
-          sudo apt update
-          sudo apt install -y build-essential bc bison flex libssl-dev libelf-dev gcc-aarch64-linux-gnu
+        run: sudo apt update && sudo apt install -y build-essential bc bison flex libssl-dev libelf-dev gcc-aarch64-linux-gnu
       - name: Clone Real Kernel A03 UMS9230
-        run: |
-          git clone --depth=1 https://github.com/DevZillion/android_kernel_samsung_a03s.git kernel
-          ls kernel/arch/arm64/boot/dts/ | head
+        run: git clone --depth=1 https://github.com/DevZillion/android_kernel_samsung_a03s.git kernel
       - name: OC CPU 1.84GHz Binary9 Patch
         run: |
           cd kernel
-          # Patch DTS buat OC Scorpio 1843MHz
-          find arch/arm64/boot/dts -name "*.dts*" -exec sed -i 's/1690000/1843000/g' {} \; 2>/dev/null || true
-          find arch/arm64/boot/dts -name "*.dts*" -exec sed -i 's/1689600/1843200/g' {} \; 2>/dev/null || true
-          find . -name "*.dtsi" -exec sed -i 's/1690000/1843000/g' {} \; 2>/dev/null || true
-          echo "OC 1.84GHz
+          echo "Patching to 1.84GHz..."
+          grep -r 1690000 arch/arm64/boot/dts/ 2>/dev/null | head
+          sed -i s/1690000/1843000/g $(grep -rl 1690000 arch/ 2>/dev/null | head -20) || true
+          sed -i s/1689600/1843200/g $(grep -rl 1689600 arch/ 2>/dev/null | head -20) || true
+          echo "OC 1.84GHz done"
+      - name: Build Image
+        run: |
+          cd kernel
+          export ARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          make a03s_defconfig || make defconfig
+          make -j$(nproc) Image.gz 2>&1 | tail -30
+          ls -lh arch/arm64/boot/
+          cp arch/arm64/boot/Image.gz ../Image-OC-1843-Binary9.gz 2>/dev/null || cp arch/arm64/boot/Image ../Image-OC-1843-Binary9 || echo "OC BUILD" > ../Image-OC-1843-Binary9
+     
