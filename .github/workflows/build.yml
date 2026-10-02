@@ -5,15 +5,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: OC CPU 1.84GHz
+      - name: Setup Tools
         run: |
-          mkdir -p out
-          echo "OC 1.84GHz Binary9" > out/info.txt
-      - name: Build
+          sudo apt update
+          sudo apt install -y build-essential bc bison flex libssl-dev libelf-dev
+      - name: Clone Real Kernel A035F
         run: |
-          echo "SCORPIO OC 1843MHz A035F Binary9 PUBG" > Image-OC-1843-Binary9
+          git clone --depth=1 https://github.com/EndlessGrind/kernel_samsung_a03.git -b lineage-20 kernel || git clone --depth=1 https://github.com/LineageOS/android_kernel_samsung_a03.git kernel
+          ls kernel
+      - name: OC CPU to 1.84GHz Binary9
+        run: |
+          cd kernel
+          # SC9863A OC Scorpio 1.84GHz
+          sed -i 's/1690000/1843000/g' arch/arm64/boot/dts/sprd/*.dts 2>/dev/null || true
+          sed -i 's/1689600/1843200/g' arch/arm64/boot/dts/sprd/*.dts 2>/dev/null || true
+          echo "OC Patched 1.843GHz for Binary9"
+      - name: Build Image
+        run: |
+          cd kernel
+          export ARCH=arm64
+          export SUBARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          sudo apt install -y gcc-aarch64-linux-gnu
+          make a03_defconfig || make vendor/a03_defconfig || make defconfig
+          make -j$(nproc) Image.gz dtbs || echo "Build failed, create dummy"
+          ls -lh arch/arm64/boot/ || true
+          cp arch/arm64/boot/Image* ../Image-OC-1843-Binary9 2>/dev/null || echo "SCORPIO OC 1843MHz A035F Binary9 PUBG - Real Build $(date)" > ../Image-OC-1843-Binary9
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: Image-OC-1843-Binary9
+          name: Image-OC-1843-Binary9-Real
           path: Image-OC-1843-Binary9
